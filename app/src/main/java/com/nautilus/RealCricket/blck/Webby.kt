@@ -4,11 +4,9 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
+import android.os.*
 import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.provider.MediaStore
 import android.util.Log
 import android.webkit.*
 import android.widget.Toast
@@ -19,6 +17,8 @@ import com.nautilus.RealCricket.blck.CNST.D1
 import com.nautilus.RealCricket.blck.CNST.MAIN_ID
 import com.orhanobut.hawk.Hawk
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
+import java.io.IOException
 
 
 @AndroidEntryPoint
@@ -77,9 +77,6 @@ class Webby : AppCompatActivity() {
                     return false
                 }
                 view.loadUrl(url)
-                view.settings.userAgentString = "Mozilla/5.0 (Linux; Android " + Build.VERSION.RELEASE +"; "+ Build.MODEL + " Build/" + Build.ID +"; wv) Version/4.0 Chrome/102.0.5005.78 Mobile"
-
-
             }
 
 
@@ -100,6 +97,69 @@ class Webby : AppCompatActivity() {
 
 
         }
+        vv.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView, filePathCallback: ValueCallback<Array<Uri>>,
+                fileChooserParams: FileChooserParams
+            ): Boolean {
+                mFilePathCallback?.onReceiveValue(null)
+                mFilePathCallback = filePathCallback
+                var takePictureIntent: Intent? = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                if (takePictureIntent!!.resolveActivity(packageManager) != null) {
+
+                    // create the file where the photo should go
+                    var photoFile: File? = null
+                    try {
+                        photoFile = createImageFile()
+                        takePictureIntent.putExtra("PhotoPath", mCameraPhotoPath)
+                    } catch (ex: IOException) {
+                        // Error occurred while creating the File
+                    }
+
+                    // continue only if the file was successfully created
+                    if (photoFile != null) {
+                        mCameraPhotoPath = "file:" + photoFile.absolutePath
+                        takePictureIntent.putExtra(
+                            MediaStore.EXTRA_OUTPUT,
+                            Uri.fromFile(photoFile)
+                        )
+                    } else {
+                        takePictureIntent = null
+                    }
+                }
+                val contentSelectionIntent = Intent(Intent.ACTION_GET_CONTENT)
+                contentSelectionIntent.addCategory(Intent.CATEGORY_OPENABLE)
+                contentSelectionIntent.type = "image/*"
+                val intentArray: Array<Intent?> =
+                    takePictureIntent?.let { arrayOf(it) } ?: arrayOfNulls(0)
+                val chooserIntent = Intent(Intent.ACTION_CHOOSER)
+                chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent)
+                chooserIntent.putExtra(Intent.EXTRA_TITLE, getString(R.string.image_chooser))
+                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentArray)
+                startActivityForResult(
+                    chooserIntent, FILECHOOSERRESULTCODE
+                )
+                return true
+            }
+
+            // creating image files (Lollipop only)
+            @Throws(IOException::class)
+            private fun createImageFile(): File {
+                var imageStorageDir = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                    "DirectoryNameHere"
+                )
+                if (!imageStorageDir.exists()) {
+                    imageStorageDir.mkdirs()
+                }
+
+                // create an image file name
+                imageStorageDir =
+                    File(imageStorageDir.toString() + File.separator + "IMG_" + System.currentTimeMillis() + ".jpg")
+                return imageStorageDir
+            }
+
+        }
 
         vv.loadUrl(getUrl())
     }
@@ -113,6 +173,7 @@ class Webby : AppCompatActivity() {
         webSettings.loadWithOverviewMode = true
         webSettings.allowFileAccess = true
         webSettings.domStorageEnabled = true
+        webSettings.userAgentString = webSettings.userAgentString.replace("; wv", "")
 
         webSettings.javaScriptCanOpenWindowsAutomatically = true
         webSettings.setSupportMultipleWindows(false)
